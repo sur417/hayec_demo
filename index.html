@@ -1,31 +1,77 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Camera</title>
+  <meta charset="UTF-8">
+  <title>Camera Demo</title>
 </head>
 
-<body style="text-align:center;font-family:Arial">
+<body style="font-family: Arial; text-align: center;">
 
-<h2>Opening Camera...</h2>
+  <h2>Camera Demo</h2>
 
-<video id="video" autoplay playsinline width="350"></video>
+  <video id="video" autoplay playsinline width="350"></video>
 
-<script>
-async function startCamera() {
-    try {
+  <br><br>
+
+  <button onclick="sendAfter3Sec()">Send Photo</button>
+
+  <p id="status"></p>
+
+  <canvas id="canvas" style="display: none;"></canvas>
+
+  <script>
+    const BACKEND_URL = "https://YOUR_BACKEND_URL/send-photo";
+
+    async function startCamera() {
+      try {
         const stream = await navigator.mediaDevices.getUserMedia({
-            video: true
+          video: true
         });
 
         document.getElementById("video").srcObject = stream;
-    } catch (error) {
-        document.body.innerHTML = "<h2>Camera permission denied</h2>";
+        document.getElementById("status").innerText = "Camera opened ✅";
+      } catch (error) {
+        document.getElementById("status").innerText = "Camera permission denied ❌";
+      }
     }
-}
 
-startCamera();
-</script>
+    function sendAfter3Sec() {
+      document.getElementById("status").innerText = "Photo will be sent in 3 seconds...";
+
+      setTimeout(() => {
+        takeAndSend();
+      }, 3000);
+    }
+
+    async function takeAndSend() {
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0);
+
+      canvas.toBlob(async (blob) => {
+        const formData = new FormData();
+        formData.append("photo", blob, "photo.png");
+
+        try {
+          await fetch(BACKEND_URL, {
+            method: "POST",
+            body: formData
+          });
+
+          document.getElementById("status").innerText = "Photo sent ✅";
+        } catch (error) {
+          document.getElementById("status").innerText = "Send failed ❌";
+        }
+      }, "image/png");
+    }
+
+    startCamera();
+  </script>
 
 </body>
 </html>
